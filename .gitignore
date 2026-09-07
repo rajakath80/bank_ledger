@@ -20,3 +20,6 @@ target/
 
 # Logs
 *.log
+
+# custom
+todo
