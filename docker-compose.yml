@@ -1,0 +1,65 @@
+services:
+
+  kanidmd:
+    image: kanidm/server:1.11.1
+    container_name: kanidmd
+    ports:
+      - "8443:8443"
+      - "3636:3636"
+    volumes:
+      - kanidmd:/data
+    restart: unless-stopped
+
+  ledger-dashboard:
+    build:
+      context: .
+      dockerfile: ledger-dashboard/Dockerfile
+    container_name: ledger-dashboard
+    ports:
+      - "3000:3000"
+    environment:
+      LEDGER_DIR: /data
+      OLLAMA_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: qwen3:8b
+
+      GUARDIAN_CMD: >
+        docker run --rm -i
+        -e LEDGER_AGENT_ROLE=guardian
+        -v /tmp/demo-ledger:/data:ro
+        ledger-guardian:latest
+        /data
+
+      TECHOPS_CMD: >
+        docker run --rm -i
+        -e LEDGER_AGENT_ROLE=techops
+        -v /tmp/demo-ledger:/data:ro
+        -v /tmp/demo-ledger-incidents:/incidents
+        ledger-techops:latest
+        /data /incidents
+
+      FINOPS_CMD: >
+        docker run --rm -i
+        -e LEDGER_AGENT_ROLE=finops
+        -v /tmp/demo-ledger:/data:ro
+        -v /tmp/savings-tags.json:/tags.json:ro
+        -v /var/run/docker.sock:/var/run/docker.sock
+        ledger-finops:latest
+        /data /tags.json
+
+    volumes:
+      - /tmp/demo-ledger:/data
+      - /tmp/demo-ledger-incidents:/incidents
+      - /tmp/savings-tags.json:/tags.json:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+
+    depends_on:
+      - kanidmd
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    restart: unless-stopped
+
+volumes:
+  kanidmd:
+    external: true

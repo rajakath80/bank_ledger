@@ -48,6 +48,7 @@ COPY ledger-agent ./ledger-agent
 COPY ledger-techops ./ledger-techops
 COPY ledger-tags ./ledger-tags
 COPY ledger-finops ./ledger-finops
+COPY ledger-credit ./ledger-credit
 COPY ledger-dashboard ./ledger-dashboard
 
 RUN cargo build --release -p ledger-dashboard
