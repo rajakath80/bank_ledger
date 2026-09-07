@@ -1,0 +1,11 @@
+[package]
+name = "ledger-tags"
+version = "0.1.0"
+edition = "2024"
+description = "Product/category tagging for FinOps: account-to-product and address-to-label maps, kept outside ledger-core."
+ 
+[dependencies]
+anyhow = "1.0.104"
+ledger-types = { path = "../ledger-types" }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"

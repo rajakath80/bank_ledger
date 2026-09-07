@@ -1,0 +1,13 @@
+[package]
+name = "ledger-core"
+version = "0.1.0"
+edition = "2024"
+description = "The ledger state machine. Pure: no IO, async, clock or floats."
+
+[dependencies]
+ledger-types = { path = "../ledger-types" }
+
+im = { version = "15.1.0", features = ["serde"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+tracing = "0.1.44"

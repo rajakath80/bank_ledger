@@ -1,0 +1,11 @@
+[package]
+name = "ledger-types"
+version = "0.1.0"
+edition = "2024"
+description = "Money, identifiers and time for the ledger. No logic."
+
+[dependencies]
+serde = { version = "1.0.229", features = ["derive"] }
+
+[dev-dependencies]
+trybuild = "1.0.120"

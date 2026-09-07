@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ledger Ops Dashboard</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, system-ui, sans-serif; margin: 0; background: #0f1115; color: #e6e6e6; }
+  header { padding: 1rem 1.5rem; border-bottom: 1px solid #2a2d34; display: flex; justify-content: space-between; align-items: baseline; }
+  h1 { margin: 0; font-size: 1.25rem; }
+  #last-refreshed { font-size: 0.75rem; opacity: 0.5; }
+
+  .overview { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; padding: 1.5rem; }
+  .card { background: #171a21; border: 1px solid #2a2d34; border-radius: 8px; padding: 1.1rem; }
+  .card h2 { margin: 0 0 0.9rem 0; font-size: 0.95rem; color: #9fb4ff; text-transform: uppercase; letter-spacing: 0.03em; }
+
+  .badge { display: inline-block; padding: 0.3rem 0.7rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.8rem; }
+  .badge-ok { background: #123a20; color: #6ee7a0; }
+  .badge-bad { background: #3a1414; color: #ff8080; }
+
+  .stat-row { margin-bottom: 0.9rem; }
+  .stat-value { font-size: 1.7rem; font-weight: 700; color: #fff; line-height: 1.1; }
+  .stat-label { font-size: 0.78rem; opacity: 0.65; margin-top: 0.15rem; }
+  .synthetic-badge { font-size: 0.62rem; background: #3a2f14; color: #ffcf6e; padding: 0.15rem 0.4rem; border-radius: 4px; margin-left: 0.4rem; vertical-align: middle; }
+
+  .metric-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 0.4rem; }
+  .metric-table th, .metric-table td { text-align: left; padding: 0.35rem 0.4rem; border-bottom: 1px solid #232830; }
+  .metric-table th { opacity: 0.55; font-weight: 500; font-size: 0.72rem; text-transform: uppercase; }
+  .row-warn td { color: #ffb020; }
+
+  .issue-list { list-style: none; padding: 0; margin: 0.6rem 0 0 0; font-size: 0.82rem; }
+  .issue-list li { padding: 0.3rem 0; border-bottom: 1px solid #232830; display: flex; justify-content: space-between; gap: 0.5rem; }
+  .dim { opacity: 0.5; font-size: 0.72rem; white-space: nowrap; }
+  .stat-error { color: #ff8080; font-size: 0.85rem; }
+  .stat-muted { opacity: 0.5; font-size: 0.85rem; }
+
+  .chat-section { padding: 1.5rem; border-top: 1px solid #2a2d34; }
+  .chat-controls { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+  select, input, button { background: #171a21; color: #e6e6e6; border: 1px solid #2a2d34; border-radius: 6px; padding: 0.5rem 0.75rem; font-size: 0.9rem; }
+  input[type=text] { flex: 1; }
+  button { cursor: pointer; }
+  button:hover { border-color: #4a5568; }
+  #chat-log { max-height: 420px; overflow-y: auto; margin-bottom: 1rem; }
+  .msg { margin-bottom: 0.75rem; padding: 0.6rem 0.85rem; border-radius: 8px; }
+  .msg.you { background: #1c2333; }
+  .msg.agent { background: #172319; }
+  .msg.error { background: #2b1717; }
+  .msg .role { font-size: 0.72rem; opacity: 0.6; margin-bottom: 0.3rem; text-transform: uppercase; letter-spacing: 0.03em; }
+  .tool-call { font-size: 0.75rem; color: #9fb4ff; margin-top: 0.4rem; font-family: ui-monospace, monospace; }
+
+  .typing-dots span {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 4px;
+    background: #9fb4ff;
+    border-radius: 50%;
+    animation: typing-blink 1.4s infinite both;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typing-blink { 0%, 80%, 100% { opacity: 0.2; } 40% { opacity: 1; } }
+
+  input:disabled, button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .actions-section { padding: 0 1.5rem 1.5rem 1.5rem; }
+  .actions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; }
+  .action-card { background: #171a21; border: 1px solid #2a2d34; border-radius: 8px; padding: 1.1rem; }
+  .action-card h2 { margin: 0 0 0.9rem 0; font-size: 0.95rem; color: #9fb4ff; text-transform: uppercase; letter-spacing: 0.03em; }
+  .action-row { display: flex; gap: 0.5rem; margin-bottom: 0.6rem; }
+  .action-row input { width: 100%; }
+  .action-result { font-size: 0.82rem; margin-top: 0.5rem; min-height: 1.2em; }
+  .action-result.ok { color: #6ee7a0; }
+  .action-result.bad { color: #ff8080; }
+
+  .voice-proposal { margin-top: 0.7rem; padding: 0.7rem; background: #0f1115; border: 1px solid #2a2d34; border-radius: 6px; }
+  .voice-proposal-text { font-size: 0.9rem; margin-bottom: 0.6rem; }
+  #voice-btn.listening { background: #3a1414; border-color: #ff8080; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Ledger Ops Dashboard</h1>
+  <span id="last-refreshed">not yet refreshed</span>
+</header>
+
+<div class="overview">
+  <div class="card"><h2>Ledger Guardian</h2><div id="card-guardian-body">loading...</div></div>
+  <div class="card"><h2>TechOps</h2><div id="card-techops-body">loading...</div></div>
+  <div class="card"><h2>FinOps</h2><div id="card-finops-body">loading...</div></div>
+</div>
+
+<div class="actions-section">
+  <div class="actions-grid">
+    <div class="action-card">
+      <h2>Create Account</h2>
+      <div class="action-row">
+        <input type="number" id="create-account-id" placeholder="Account ID (e.g. 4)">
+        <button id="create-account-btn">Create</button>
+      </div>
+      <div class="action-result" id="create-account-result"></div>
+    </div>
+    <div class="action-card">
+      <h2>Transfer</h2>
+      <div class="action-row">
+        <input type="number" id="transfer-from" placeholder="From account ID">
+        <input type="number" id="transfer-to" placeholder="To account ID">
+      </div>
+      <div class="action-row">
+        <input type="number" id="transfer-amount" placeholder="Amount">
+        <button id="transfer-btn">Transfer</button>
+      </div>
+      <div class="action-result" id="transfer-result"></div>
+    </div>
+    <div class="action-card" style="grid-column: 1 / -1;">
+      <h2>Voice Command</h2>
+      <div class="action-row">
+        <button id="voice-btn">🎤 Click to Speak</button>
+        <span id="voice-status" class="stat-muted"></span>
+      </div>
+      <div id="voice-transcript" class="stat-muted"></div>
+      <div id="voice-proposal" class="voice-proposal" style="display:none;">
+        <div class="voice-proposal-text" id="voice-proposal-text"></div>
+        <div class="action-row">
+          <button id="voice-confirm-btn">Confirm</button>
+          <button id="voice-cancel-btn">Cancel</button>
+        </div>
+      </div>
+      <div class="action-result" id="voice-result"></div>
+    </div>
+    <div class="action-card" style="grid-column: 1 / -1;">
+      <h2>All Accounts</h2>
+      <div class="action-row">
+        <button id="refresh-accounts-btn">Refresh Balances</button>
+      </div>
+      <table class="metric-table">
+        <thead><tr><th>Account</th><th>Address</th><th>Denom</th><th>Phase</th><th>Net</th></tr></thead>
+        <tbody id="accounts-tbody"><tr><td colspan="5" class="stat-muted">click Refresh Balances</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="chat-section">
+  <div class="chat-controls">
+    <select id="agent-select">
+      <option value="guardian">Ledger Guardian</option>
+      <option value="techops">TechOps</option>
+      <option value="finops">FinOps</option>
+    </select>
+    <button id="reset-btn">Reset conversation</button>
+  </div>
+  <div id="chat-log"></div>
+  <div class="chat-controls">
+    <input type="text" id="chat-input" placeholder="Ask a question and press Enter...">
+    <button id="send-btn">Send</button>
+  </div>
+</div>
+
+<script>
+const REFRESH_MS = 10000; // change this to adjust auto-refresh interval
+
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s == null ? '' : String(s);
+  return d.innerHTML;
+}
+
+function fmtNumber(n) {
+  if (n === undefined || n === null || n === '') return '\u2014';
+  const num = Number(n);
+  return Number.isNaN(num) ? String(n) : num.toLocaleString();
+}
+
+function fmtMoney(n) {
+  if (n === undefined || n === null) return '\u2014';
+  const num = Number(n);
+  return Number.isNaN(num) ? String(n) : '$' + num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+}
+
+function fmtDuration(ns) {
+  if (ns === undefined || ns === null) return '\u2014';
+  if (ns < 1000) return ns.toFixed(0) + 'ns';
+  if (ns < 1000000) return (ns / 1000).toFixed(1) + '\u00b5s';
+  if (ns < 1000000000) return (ns / 1000000).toFixed(1) + 'ms';
+  return (ns / 1000000000).toFixed(2) + 's';
+}
+
+// -------- Guardian --------
+function renderGuardian(data) {
+  const el = document.getElementById('card-guardian-body');
+  const rec = data && data.reconciliation;
+  if (!rec || rec.error) {
+    el.innerHTML = '<div class="stat-error">\u26a0 ' + escapeHtml((rec && rec.error) || 'no data yet') + '</div>';
+    return;
+  }
+  const badgeClass = rec.balanced ? 'badge-ok' : 'badge-bad';
+  const badgeText = rec.balanced ? '\u2713 Balanced' : '\u2717 OUT OF BALANCE';
+  let rows = '';
+  for (const t of (rec.totals_per_denom || [])) {
+    rows += '<tr><td>Denom ' + escapeHtml(t.denom) + '</td><td>' + fmtNumber(t.net) + '</td></tr>';
+  }
+  el.innerHTML =
+    '<div class="badge ' + badgeClass + '">' + badgeText + '</div>' +
+    (rows ? '<table class="metric-table"><tbody>' + rows + '</tbody></table>' : '');
+}
+
+// -------- TechOps --------
+function renderTechops(data) {
+  const el = document.getElementById('card-techops-body');
+  const latency = data && data.latency;
+  const issues = data && data.recent_issues;
+  let html = '';
+
+  if (Array.isArray(issues)) {
+    if (issues.length === 0) {
+      html += '<div class="badge badge-ok">\u2713 No recent issues</div>';
+    } else {
+      html += '<div class="badge badge-bad">\u26a0 ' + issues.length + ' recent issue(s)</div><ul class="issue-list">';
+      for (const issue of issues.slice(0, 5)) {
+        const rejection = issue && issue.fields && issue.fields.rejection;
+        const ts = (issue && issue.timestamp) || '';
+        html += '<li><span>' + escapeHtml(rejection || 'unknown') + '</span><span class="dim">' + escapeHtml(ts) + '</span></li>';
+      }
+      html += '</ul>';
+    }
+  } else if (issues && issues.error) {
+    html += '<div class="stat-error">\u26a0 ' + escapeHtml(issues.error) + '</div>';
+  } else {
+    html += '<div class="stat-muted">no issue data yet</div>';
+  }
+
+  if (Array.isArray(latency) && latency.length > 0) {
+    const sorted = [...latency].sort((a, b) => (b.avg_ns || 0) - (a.avg_ns || 0));
+    html += '<table class="metric-table"><thead><tr><th>Kind</th><th>Avg</th><th>P95</th><th>Count</th></tr></thead><tbody>';
+    for (const row of sorted.slice(0, 6)) {
+      const slow = (row.avg_ns || 0) > 1000000; // over 1ms average
+      html += '<tr class="' + (slow ? 'row-warn' : '') + '"><td>' + escapeHtml(row.kind) + '</td><td>' + fmtDuration(row.avg_ns) +
+        '</td><td>' + fmtDuration(row.p95_ns) + '</td><td>' + fmtNumber(row.count) + '</td></tr>';
+    }
+    html += '</tbody></table>';
+  } else if (latency && latency.error) {
+    html += '<div class="stat-error">\u26a0 ' + escapeHtml(latency.error) + '</div>';
+  }
+
+  el.innerHTML = html;
+}
+
+// -------- FinOps --------
+function renderFinops(data) {
+  const el = document.getElementById('card-finops-body');
+  const vol = data && data.volume;
+  const cost = data && data.cost;
+  let html = '';
+
+  if (vol && !vol.error) {
+    html += '<div class="stat-row"><div class="stat-value">' + fmtNumber(vol.gross_volume) + '</div>' +
+      '<div class="stat-label">Gross Volume &mdash; ' + escapeHtml(vol.product || '') + '</div></div>';
+    html += '<div class="stat-row"><div class="stat-value">' + fmtNumber(vol.transfer_count) + '</div>' +
+      '<div class="stat-label">Transfers</div></div>';
+  } else if (vol && vol.error) {
+    html += '<div class="stat-error">\u26a0 ' + escapeHtml(vol.error) + '</div>';
+  }
+
+  if (cost && !cost.error) {
+    html += '<div class="stat-row"><div class="stat-value">' + fmtMoney(cost.total_assumed_hourly_cost_usd) + '/hr' +
+      '<span class="synthetic-badge">estimated</span></div>' +
+      '<div class="stat-label">Infra Cost (live docker stats \u00d7 assumed price)</div></div>';
+  } else if (cost && cost.error) {
+    html += '<div class="stat-muted">infra cost unavailable: ' + escapeHtml(cost.error) + '</div>';
+  }
+
+  el.innerHTML = html || '<div class="stat-muted">no data yet</div>';
+}
+
+async function refreshOverview() {
+  try {
+    const res = await fetch('/api/overview');
+    const data = await res.json();
+    renderGuardian(data.guardian);
+    renderTechops(data.techops);
+    renderFinops(data.finops);
+    document.getElementById('last-refreshed').textContent = 'last refreshed ' + new Date().toLocaleTimeString();
+  } catch (e) {
+    document.getElementById('last-refreshed').textContent = 'refresh failed: ' + e;
+  }
+}
+refreshOverview();
+refreshAccounts();
+setInterval(refreshOverview, REFRESH_MS);
+
+// -------- Chat --------
+function appendMessage(role, text, toolCalls, isError) {
+  const log = document.getElementById('chat-log');
+  const div = document.createElement('div');
+  div.className = 'msg ' + (isError ? 'error' : (role === 'you' ? 'you' : 'agent'));
+  let html = '<div class="role">' + escapeHtml(role) + '</div><div>' + escapeHtml(text) + '</div>';
+  if (toolCalls && toolCalls.length) {
+    for (const tc of toolCalls) {
+      html += '<div class="tool-call">[called ' + escapeHtml(tc.name) + '(' + escapeHtml(JSON.stringify(tc.arguments)) + ')]</div>';
+    }
+  }
+  div.innerHTML = html;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function appendLoadingMessage(role) {
+  const log = document.getElementById('chat-log');
+  const div = document.createElement('div');
+  div.className = 'msg agent';
+  div.id = 'loading-indicator';
+  div.innerHTML = '<div class="role">' + escapeHtml(role) + '</div>' +
+    '<div class="typing-dots"><span></span><span></span><span></span></div>';
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function removeLoadingMessage() {
+  const el = document.getElementById('loading-indicator');
+  if (el) el.remove();
+}
+
+async function sendChat() {
+  const agent = document.getElementById('agent-select').value;
+  const input = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('send-btn');
+  const message = input.value.trim();
+  if (!message) return;
+  input.value = '';
+  appendMessage('you', message);
+
+  appendLoadingMessage(agent);
+  input.disabled = true;
+  sendBtn.disabled = true;
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agent, message }),
+    });
+    const data = await res.json();
+    removeLoadingMessage();
+    if (data.error) {
+      appendMessage(agent, data.error, null, true);
+    } else {
+      appendMessage(agent, data.reply, data.tool_calls, false);
+    }
+  } catch (e) {
+    removeLoadingMessage();
+    appendMessage(agent, 'request failed: ' + e, null, true);
+  } finally {
+    input.disabled = false;
+    sendBtn.disabled = false;
+    input.focus();
+  }
+}
+
+document.getElementById('send-btn').addEventListener('click', sendChat);
+document.getElementById('chat-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') sendChat();
+});
+
+// -------- Voice Command --------
+// Speech-to-text is fully local: raw audio is captured via Web Audio API,
+// resampled and hand-encoded into a 16-bit mono WAV file entirely in the
+// browser, then POSTed to /api/transcribe, which runs a local whisper.cpp
+// subprocess -- no audio ever leaves this machine. (The Web Speech API's
+// built-in SpeechRecognition was tried first and dropped: despite living
+// in the browser, it actually sends audio to a cloud speech service,
+// which is exactly what this avoids.)
+//
+// Text-to-speech still uses the browser's built-in SpeechSynthesis --
+// that one genuinely runs on-device, no cloud round-trip involved.
+let pendingVoiceIntent = null;
+let isRecording = false;
+let audioContext = null;
+let mediaStream = null;
+let scriptProcessor = null;
+let recordedChunks = [];
+
+function speak(text) {
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+}
+
+function mergeFloat32Chunks(chunks) {
+  const total = chunks.reduce((sum, c) => sum + c.length, 0);
+  const merged = new Float32Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return merged;
+}
+
+// Naive nearest-sample resampling -- adequate for speech at this length;
+// a real production pipeline would use a proper sinc/polyphase resampler,
+// but that's overkill for a few seconds of voice command audio.
+function resampleTo16k(samples, originalSampleRate) {
+  if (originalSampleRate === 16000) return samples;
+  const ratio = originalSampleRate / 16000;
+  const newLength = Math.floor(samples.length / ratio);
+  const result = new Float32Array(newLength);
+  for (let i = 0; i < newLength; i++) {
+    result[i] = samples[Math.floor(i * ratio)];
+  }
+  return result;
+}
+
+// Hand-rolled 16-bit PCM mono WAV encoder -- whisper.cpp's CLI only
+// accepts 16-bit WAV input, and browsers don't expose a built-in WAV
+// encoder, only compressed formats (webm/opus) via MediaRecorder.
+function encodeWav(float32Samples, sampleRate) {
+  const numSamples = float32Samples.length;
+  const buffer = new ArrayBuffer(44 + numSamples * 2);
+  const view = new DataView(buffer);
+
+  function writeString(offset, str) {
+    for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+  }
+
+  writeString(0, 'RIFF');
+  view.setUint32(4, 36 + numSamples * 2, true);
+  writeString(8, 'WAVE');
+  writeString(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); // PCM
+  view.setUint16(22, 1, true); // mono
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true); // byte rate
+  view.setUint16(32, 2, true); // block align
+  view.setUint16(34, 16, true); // bits per sample
+  writeString(36, 'data');
+  view.setUint32(40, numSamples * 2, true);
+
+  let offset = 44;
+  for (let i = 0; i < numSamples; i++) {
+    const s = Math.max(-1, Math.min(1, float32Samples[i]));
+    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+    offset += 2;
+  }
+
+  return new Blob([buffer], { type: 'audio/wav' });
+}
+
+async function startRecording() {
+  mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  const source = audioContext.createMediaStreamSource(mediaStream);
+  // ScriptProcessorNode is deprecated in favor of AudioWorklet, but still
+  // widely supported and far simpler to wire up for a short recording
+  // like this -- acceptable tradeoff for a POC.
+  scriptProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+  recordedChunks = [];
+  scriptProcessor.onaudioprocess = (e) => {
+    recordedChunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+  };
+  source.connect(scriptProcessor);
+  scriptProcessor.connect(audioContext.destination);
+}
+
+function stopRecordingAndEncode() {
+  const sampleRate = audioContext.sampleRate;
+  scriptProcessor.disconnect();
+  audioContext.close();
+  mediaStream.getTracks().forEach((t) => t.stop());
+  const merged = mergeFloat32Chunks(recordedChunks);
+  const resampled = resampleTo16k(merged, sampleRate);
+  return encodeWav(resampled, 16000);
+}
+
+async function transcribeAndHandle(wavBlob) {
+  document.getElementById('voice-status').textContent = 'transcribing (local, may take a few seconds)...';
+  try {
+    const res = await fetch('/api/transcribe', { method: 'POST', body: wavBlob });
+    const data = await res.json();
+    document.getElementById('voice-status').textContent = '';
+    if (data.error) {
+      showActionResult('voice-result', false, data.error);
+      return;
+    }
+    handleVoiceTranscript(data.transcript);
+  } catch (e) {
+    document.getElementById('voice-status').textContent = '';
+    showActionResult('voice-result', false, 'transcription request failed: ' + e);
+  }
+}
+
+async function handleVoiceTranscript(transcript) {
+  document.getElementById('voice-transcript').textContent = 'You said: "' + transcript + '"';
+  document.getElementById('voice-status').textContent = 'thinking...';
+  document.getElementById('voice-result').textContent = '';
+
+  try {
+    const res = await fetch('/api/voice-intent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcript }),
+    });
+    const data = await res.json();
+    document.getElementById('voice-status').textContent = '';
+
+    if (data.error) {
+      showActionResult('voice-result', false, data.error);
+      return;
+    }
+    if (data.intent === 'unclear') {
+      showActionResult('voice-result', false, data.message);
+      speak(data.message);
+      return;
+    }
+
+    pendingVoiceIntent = data;
+    let proposalText;
+    if (data.intent === 'propose_create_account') {
+      proposalText = 'Create account ' + data.params.account_id + '?';
+    } else if (data.intent === 'propose_transfer') {
+      proposalText = 'Transfer ' + data.params.amount + ' from account ' + data.params.from_account_id +
+        ' to account ' + data.params.to_account_id + '?';
+    } else {
+      proposalText = 'Unrecognized proposal: ' + data.intent;
+    }
+    document.getElementById('voice-proposal-text').textContent = proposalText;
+    document.getElementById('voice-proposal').style.display = 'block';
+    speak(proposalText);
+  } catch (e) {
+    document.getElementById('voice-status').textContent = '';
+    showActionResult('voice-result', false, 'request failed: ' + e);
+  }
+}
+
+const voiceBtn = document.getElementById('voice-btn');
+if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+  voiceBtn.disabled = true;
+  document.getElementById('voice-status').textContent = 'Microphone access not available in this browser/context (needs HTTPS or localhost).';
+} else {
+  voiceBtn.addEventListener('click', async () => {
+    if (!isRecording) {
+      document.getElementById('voice-proposal').style.display = 'none';
+      document.getElementById('voice-result').textContent = '';
+      document.getElementById('voice-transcript').textContent = '';
+      try {
+        await startRecording();
+        isRecording = true;
+        voiceBtn.textContent = '\u23f9 Click to Stop';
+        voiceBtn.classList.add('listening');
+        document.getElementById('voice-status').textContent = 'recording...';
+      } catch (e) {
+        document.getElementById('voice-status').textContent = 'microphone error: ' + e;
+      }
+    } else {
+      isRecording = false;
+      voiceBtn.textContent = '\ud83c\udfa4 Click to Speak';
+      voiceBtn.classList.remove('listening');
+      const wavBlob = stopRecordingAndEncode();
+      await transcribeAndHandle(wavBlob);
+    }
+  });
+}
+
+document.getElementById('voice-confirm-btn').addEventListener('click', async () => {
+  if (!pendingVoiceIntent) return;
+  document.getElementById('voice-proposal').style.display = 'none';
+  const { intent, params } = pendingVoiceIntent;
+  pendingVoiceIntent = null;
+
+  try {
+    let res, data;
+    if (intent === 'propose_create_account') {
+      res = await fetch('/api/accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ account_id: params.account_id }),
+      });
+      data = await res.json();
+      if (data.ok) {
+        showActionResult('voice-result', true, '\u2713 account ' + params.account_id + ' created');
+        speak('Account created.');
+      } else {
+        showActionResult('voice-result', false, data.error || ('rejected: ' + data.rejection));
+        speak('Sorry, that failed.');
+      }
+    } else if (intent === 'propose_transfer') {
+      res = await fetch('/api/transfers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from_account_id: params.from_account_id, to_account_id: params.to_account_id, amount: params.amount }),
+      });
+      data = await res.json();
+      if (data.ok) {
+        showActionResult('voice-result', true, '\u2713 transfer complete');
+        speak('Transfer complete.');
+      } else {
+        showActionResult('voice-result', false, data.error || ('rejected: ' + data.rejection));
+        speak('Sorry, that failed.');
+      }
+    }
+    refreshOverview();
+    refreshAccounts();
+  } catch (e) {
+    showActionResult('voice-result', false, 'request failed: ' + e);
+  }
+});
+
+document.getElementById('voice-cancel-btn').addEventListener('click', () => {
+  pendingVoiceIntent = null;
+  document.getElementById('voice-proposal').style.display = 'none';
+  document.getElementById('voice-result').textContent = 'cancelled';
+});
+
+// -------- All Accounts --------
+async function refreshAccounts() {
+  const tbody = document.getElementById('accounts-tbody');
+  tbody.innerHTML = '<tr><td colspan="5" class="stat-muted">loading...</td></tr>';
+  try {
+    const res = await fetch('/api/accounts');
+    const data = await res.json();
+    if (data.error) {
+      tbody.innerHTML = '<tr><td colspan="5" class="stat-error">' + escapeHtml(data.error) + '</td></tr>';
+      return;
+    }
+    if (!data.accounts || data.accounts.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="stat-muted">no accounts yet</td></tr>';
+      return;
+    }
+    let rows = '';
+    for (const acct of data.accounts) {
+      const label = acct.account_id + (acct.open ? '' : ' (closed)');
+      if (!acct.balances || acct.balances.length === 0) {
+        rows += '<tr><td>' + escapeHtml(label) + '</td><td colspan="4" class="stat-muted">no balances</td></tr>';
+        continue;
+      }
+      for (const bal of acct.balances) {
+        rows += '<tr><td>' + escapeHtml(label) + '</td><td>' + fmtNumber(bal.address) + '</td><td>' +
+          fmtNumber(bal.denom) + '</td><td>' + escapeHtml(bal.phase) + '</td><td>' + fmtNumber(bal.net) + '</td></tr>';
+      }
+    }
+    tbody.innerHTML = rows;
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="5" class="stat-error">refresh failed: ' + escapeHtml(String(e)) + '</td></tr>';
+  }
+}
+document.getElementById('refresh-accounts-btn').addEventListener('click', refreshAccounts);
+
+document.getElementById('reset-btn').addEventListener('click', async () => {
+  const agent = document.getElementById('agent-select').value;
+  await fetch('/api/chat/reset', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ agent }),
+  });
+  document.getElementById('chat-log').innerHTML = '';
+});
+
+// -------- Create Account / Transfer --------
+function showActionResult(elementId, ok, text) {
+  const el = document.getElementById(elementId);
+  el.textContent = text;
+  el.className = 'action-result ' + (ok ? 'ok' : 'bad');
+}
+
+document.getElementById('create-account-btn').addEventListener('click', async () => {
+  const idInput = document.getElementById('create-account-id');
+  const accountId = parseInt(idInput.value, 10);
+  if (Number.isNaN(accountId)) {
+    showActionResult('create-account-result', false, 'enter a numeric account ID');
+    return;
+  }
+  try {
+    const res = await fetch('/api/accounts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ account_id: accountId }),
+    });
+    const data = await res.json();
+    if (data.error) {
+      showActionResult('create-account-result', false, data.error);
+    } else if (data.ok) {
+      showActionResult('create-account-result', true, '\u2713 account ' + accountId + ' created');
+      idInput.value = '';
+      refreshOverview();
+      refreshAccounts();
+    } else {
+      showActionResult('create-account-result', false, '\u2717 rejected: ' + data.rejection);
+    }
+  } catch (e) {
+    showActionResult('create-account-result', false, 'request failed: ' + e);
+  }
+});
+
+document.getElementById('transfer-btn').addEventListener('click', async () => {
+  const fromInput = document.getElementById('transfer-from');
+  const toInput = document.getElementById('transfer-to');
+  const amountInput = document.getElementById('transfer-amount');
+  const from = parseInt(fromInput.value, 10);
+  const to = parseInt(toInput.value, 10);
+  const amount = parseInt(amountInput.value, 10);
+  if (Number.isNaN(from) || Number.isNaN(to) || Number.isNaN(amount)) {
+    showActionResult('transfer-result', false, 'fill in from, to, and amount');
+    return;
+  }
+  try {
+    const res = await fetch('/api/transfers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from_account_id: from, to_account_id: to, amount }),
+    });
+    const data = await res.json();
+    if (data.error) {
+      showActionResult('transfer-result', false, data.error);
+    } else if (data.ok) {
+      showActionResult('transfer-result', true, '\u2713 transferred ' + amount + ' from ' + from + ' to ' + to);
+      fromInput.value = '';
+      toInput.value = '';
+      amountInput.value = '';
+      refreshOverview();
+      refreshAccounts();
+    } else {
+      showActionResult('transfer-result', false, '\u2717 rejected: ' + data.rejection);
+    }
+  } catch (e) {
+    showActionResult('transfer-result', false, 'request failed: ' + e);
+  }
+});
+</script>
+</body>
+</html>

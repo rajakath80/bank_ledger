@@ -1,0 +1,77 @@
+cargo run -p ledger-log --example inspect_log
+cargo run -p ledger-store --example durable_ledger
+cargo run --release --example bench_apply
+
+
+rm -rf /tmp/demo-ledger
+cargo run -p ledger-store --example seed_ledger -- /tmp/demo-ledger
+cargo run -p ledger-store --example simulate_incidents -- /tmp/demo-ledger
+
+# 2. Point Ledger Guardian at it
+LEDGER_AGENT_ROLE=guardian cargo run -p ledger-guardian -- /tmp/demo-ledger
+
+cargo run -p ledger-agent -- ./target/debug/ledger-guardian /tmp/demo-ledger qwen3:8b
+
+cargo build -p ledger-techops
+LEDGER_AGENT_ROLE=techops cargo run -p ledger-techops -- /tmp/demo-ledger /tmp/demo-ledger-incidents
+
+npx @modelcontextprotocol/inspector -e LEDGER_AGENT_ROLE=techops -- \
+    /Users/rk/code/bank/ledger/target/debug/ledger-techops /tmp/demo-ledger /tmp/demo-ledger-incidents
+
+note: env for guardian to be passed correctly below due to new rbac
+npx @modelcontextprotocol/inspector cargo run -p ledger-guardian -- /tmp/demo-ledger
+
+cargo llvm-cov --html
+
+# Build both images (context is the repo root, not the crate dir)
+docker build -f ledger-guardian/Dockerfile -t ledger-guardian:latest .
+docker build -f ledger-techops/Dockerfile -t ledger-techops:latest .
+docker build -f ledger-finops/Dockerfile -t ledger-finops:latest .
+docker build -f ledger-dashboard/Dockerfile -t ledger-dashboard:latest .
+
+# Run Guardian through the driver, now via Docker instead of a local binary
+cargo run -p ledger-agent -- --model qwen3:8b -- \
+  docker run --rm -i -e LEDGER_AGENT_ROLE=guardian \
+  -v /tmp/demo-ledger:/data:ro \
+  ledger-guardian:latest /data
+
+cargo run -p ledger-agent -- --model qwen3:8b -- \
+  docker run --rm -i -e LEDGER_AGENT_ROLE=techops \
+  -v /tmp/demo-ledger:/data:ro \
+  -v /tmp/demo-ledger-incidents:/incidents \
+  ledger-techops:latest /data /incidents
+
+cargo run -p ledger-agent -- --model qwen3:8b -- \
+  docker run --rm -i -e LEDGER_AGENT_ROLE=finops \
+  -v /tmp/demo-ledger:/data:ro \
+  -v /tmp/savings-tags.json:/tags.json:ro \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  ledger-finops:latest /data /tags.json
+
+# Run all
+export GUARDIAN_CMD='docker run --rm -i -e LEDGER_AGENT_ROLE=guardian -v /tmp/demo-ledger:/data:ro ledger-guardian:latest /data'
+export TECHOPS_CMD='docker run --rm -i -e LEDGER_AGENT_ROLE=techops -v /tmp/demo-ledger:/data:ro -v /tmp/demo-ledger-incidents:/incidents ledger-techops:latest /data /incidents'
+export FINOPS_CMD='docker run --rm -i -e LEDGER_AGENT_ROLE=finops -v /tmp/demo-ledger:/data:ro -v /tmp/savings-tags.json:/tags.json:ro -v /var/run/docker.sock:/var/run/docker.sock ledger-finops:latest /data /tags.json'
+
+cargo run -p ledger-dashboard
+
+export LEDGER_DIR=/tmp/demo-ledger
+export AUDIT_DIR=/tmp/demo-ledger-credit-decisions
+cargo run -p ledger-credit
+
+docker create \
+  --name kanidmd \
+  -p 8443:8443 \
+  -p 3636:3636 \
+  -v kanidmd:/data \
+  kanidm/server:1.11.1
+
+ckt0hx79475wrvg9g9yggtdtqa9bvd7kx1qk1e064v1c8r5q
+91tjhyet2dwvsp3tdzgg6s31c5jur2y88h6h11gbvqx6fx20
+
+KANIDM_URL=https://localhost:8443
+
+OIDC_ISSUER=https://localhost:8443/oauth2/openid/api
+OIDC_AUDIENCE=api
+
+eyJhbGciOiJIUzI1NiIsImtpZCI6ImU4NWY0MmRjN2RiZCJ9.eyJhY2NvdW50X2lkIjoiN2Q2MGZlOTItYWUyZi00ZDM4LTlkOWEtNzMzY2FmNjE0Y2E4IiwidG9rZW5faWQiOiI5Y2QzZTcyOC0zNTU4LTQyZGYtYjU3OC0xMzQwN2Y1NmVjZmQiLCJsYWJlbCI6ImF4dW0tYXBpIiwiZXhwaXJ5IjpudWxsLCJpc3N1ZWRfYXQiOjE3ODg3OTE1NzUsInB1cnBvc2UiOiJyZWFkb25seSJ9.pOsMwluZyFYElTn9X3tdBTWWOKGRMudLt3eLLfSAjtI

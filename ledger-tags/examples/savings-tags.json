@@ -1,0 +1,11 @@
+{
+  "accounts": [
+    { "account": 1, "product": "savings" },
+    { "account": 2, "product": "savings" }
+  ],
+  "addresses": [
+    { "address": 0, "label": "principal" },
+    { "address": 2, "label": "interest_accrued" },
+    { "address": 3, "label": "fees" }
+  ]
+}

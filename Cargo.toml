@@ -1,0 +1,3 @@
+[workspace]
+resolver = "3"
+members = ["ledger-agent", "ledger-auth","ledger-core", "ledger-credit", "ledger-dashboard", "ledger-finops", "ledger-guardian", "ledger-log", "ledger-store", "ledger-tags", "ledger-techops","ledger-types"]

@@ -1,0 +1,18 @@
+[package]
+name = "ledger-dashboard"
+version = "0.1.0"
+edition = "2024"
+description = "Web dashboard + chat over all three agents (Guardian, TechOps, FinOps): overview panels on top, agent-scoped chat below."
+
+[dependencies]
+anyhow = "1.0.104"
+axum = "0.8.9"
+ledger-core = { path = "../ledger-core" }
+ledger-types = { path = "../ledger-types" }
+ledger-log = { path = "../ledger-log" }
+ledger-store = { path = "../ledger-store" }
+reqwest = { version = "0.13.4", features = ["json"] }
+rmcp = { version = "3.2.0", features = ["client", "transport-child-process"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread", "net"] }

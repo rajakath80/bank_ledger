@@ -1,0 +1,18 @@
+[package]
+name = "ledger-guardian"
+version = "0.1.0"
+edition = "2024"
+description = "MCP server exposing read-only ledger-forensics tools: balance, journal, reconciliation, investigation."
+ 
+[dependencies]
+ledger-core = { path = "../ledger-core" }
+ledger-log = { path = "../ledger-log" }
+ledger-store = { path = "../ledger-store" }
+ledger-tags = { path = "../ledger-tags" }
+ledger-types = { path = "../ledger-types" }
+rmcp = { version = "3", features = ["server", "transport-io"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "io-std"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+schemars = "1.2"
+anyhow = "1"

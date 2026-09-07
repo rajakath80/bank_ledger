@@ -1,0 +1,17 @@
+[package]
+name = "ledger-auth"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = "0.8.9"
+dotenvy = "0.15.7"
+jsonwebtoken = "11.0.0"
+kanidm_client = { git = "https://github.com/kanidm/kanidm.git", package = "kanidm_client", rev = "c6ca0f2a79a57267060f95f0ceeafdb4dd6f5696" }
+reqwest = { version = "0.13.4", default-features = false, features = ["json", "rustls"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+thiserror = "2.0.20"
+tokio = "1.53.1"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }

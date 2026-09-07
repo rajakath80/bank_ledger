@@ -1,0 +1,9 @@
+{
+  "accounts": [
+    { "account_id": 1, "mock_bureau_score": 580, "mock_external_dti": 0.55 },
+    { "account_id": 2, "mock_bureau_score": 720, "mock_external_dti": 0.15 },
+    { "account_id": 3, "mock_bureau_score": 640, "mock_external_dti": 0.38 },
+    { "account_id": 4, "mock_bureau_score": 690, "mock_external_dti": 0.25 },
+    { "account_id": 5, "mock_bureau_score": 510, "mock_external_dti": 0.62 }
+  ]
+}

@@ -1,0 +1,10 @@
+version = "2"
+
+domain = "localhost"
+origin = "https://localhost:8443"
+
+bindaddress = "0.0.0.0:8443"
+db_path = "/data/kanidm.db"
+
+tls_chain = "/data/chain.pem"
+tls_key = "/data/key.pem"

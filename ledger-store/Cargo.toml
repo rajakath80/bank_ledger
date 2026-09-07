@@ -1,0 +1,16 @@
+[package]
+name = "ledger-store"
+version = "0.1.0"
+edition = "2024"
+description = "Real durable storage: segment files, checksums, fsync, crash recovery."
+
+[dependencies]
+ledger-log = { path = "../ledger-log" }
+serde_json = "1"
+tracing = "0.1.44"
+
+[dev-dependencies]
+ledger-core = { path = "../ledger-core" }
+ledger-types = { path = "../ledger-types" }
+anyhow = "1"
+tracing-subscriber = { version = "0.3.23", features = ["json", "env-filter"] }
