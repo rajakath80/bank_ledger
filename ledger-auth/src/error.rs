@@ -39,6 +39,6 @@ impl IntoResponse for AppError {
 
 impl From<kanidm_client::ClientError> for AppError {
     fn from(value: kanidm_client::ClientError) -> Self {
-        Self::Identity(value.to_string())
+        Self::Identity(format!("{value:?}"))
     }
 }

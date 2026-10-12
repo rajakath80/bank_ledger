@@ -1,9 +1,11 @@
+use std::sync::Arc;
+
 use crate::{auth::JwksCache, config::Config, error::AppError};
 use kanidm_client::{KanidmClient, KanidmClientBuilder};
 
 #[derive(Clone)]
 pub struct Kanidm {
-    pub client: KanidmClient,
+    pub client: Arc<KanidmClient>,
     pub jwks: JwksCache,
 }
 
@@ -21,7 +23,10 @@ impl Kanidm {
 
         let jwks = JwksCache::new(&config.oidc_issuer).await?;
 
-        Ok(Self { client, jwks })
+        Ok(Self {
+            client: Arc::new(client),
+            jwks,
+        })
     }
 
     pub async fn ensure_role_groups(&self, config: &Config) -> Result<(), AppError> {

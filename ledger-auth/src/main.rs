@@ -6,14 +6,14 @@ mod kanidm;
 
 use axum::{
     Router,
-    routing::{delete, get, patch, post},
+    routing::{get, post},
 };
 use config::Config;
 use kanidm::Kanidm;
 use std::sync::Arc;
 use tracing::info;
 
-// #[derive(Clone)]
+#[derive(Clone)]
 pub struct AppState {
     pub config: Arc<Config>,
     pub kanidm: Kanidm,

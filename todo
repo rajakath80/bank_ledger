@@ -67,11 +67,16 @@ docker create \
   kanidm/server:1.11.1
 
 ckt0hx79475wrvg9g9yggtdtqa9bvd7kx1qk1e064v1c8r5q
-91tjhyet2dwvsp3tdzgg6s31c5jur2y88h6h11gbvqx6fx20
+/d
 
 KANIDM_URL=https://localhost:8443
 
 OIDC_ISSUER=https://localhost:8443/oauth2/openid/api
 OIDC_AUDIENCE=api
+
+
+rk@rks-MacBook-Pro ledger % kanidm login --name alice --url https://localhost:8443 
+2026-09-08T18:01:19.005601Z ERROR kanidm_cli::session: Error during authentication init phase: Http(404, Some(NoMatchingEntries), "944a7a63-52a2-4058-8dd3-afedf208443a")
+rk@rks-MacBook-Pro ledger % kanidm login --name alice --url https://localhost:8443
 
 eyJhbGciOiJIUzI1NiIsImtpZCI6ImU4NWY0MmRjN2RiZCJ9.eyJhY2NvdW50X2lkIjoiN2Q2MGZlOTItYWUyZi00ZDM4LTlkOWEtNzMzY2FmNjE0Y2E4IiwidG9rZW5faWQiOiI5Y2QzZTcyOC0zNTU4LTQyZGYtYjU3OC0xMzQwN2Y1NmVjZmQiLCJsYWJlbCI6ImF4dW0tYXBpIiwiZXhwaXJ5IjpudWxsLCJpc3N1ZWRfYXQiOjE3ODg3OTE1NzUsInB1cnBvc2UiOiJyZWFkb25seSJ9.pOsMwluZyFYElTn9X3tdBTWWOKGRMudLt3eLLfSAjtI

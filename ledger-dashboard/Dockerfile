@@ -50,6 +50,7 @@ COPY ledger-tags ./ledger-tags
 COPY ledger-finops ./ledger-finops
 COPY ledger-credit ./ledger-credit
 COPY ledger-dashboard ./ledger-dashboard
+COPY ledger-auth ./ledger-auth
 
 RUN cargo build --release -p ledger-dashboard
 

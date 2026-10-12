@@ -6,7 +6,6 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::sync::Arc;
 
 #[derive(Debug, Serialize)]
 pub struct User {
